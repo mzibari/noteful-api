@@ -18,6 +18,31 @@ foldersRouter
             .catch(next)
     })
 
+    .post(jsonParser, (req, res, next) => {
+        const { title } = req.body
+        const newFolder = { title }
+        for (const [key, value] of Object.entries(newFolder)) {
+            if (value == null) {
+                return res.status(400).json({
+                    error: { message: `Missing '${key}' in request body` }
+                })
+            }
+        }
+        newFolder.title = title
+        FoldersService.insertFolder(
+            req.app.get('db'),
+            newFolder
+        )
+            .then(folder => {
+                res
+                    .status(201)
+                    .location(path.posix.join(req.originalUrl, `/${folder.id}`))
+                    .json(folder)
+            })
+            .catch(next)
+    })
+
+
 foldersRouter.route('/:folder_id')
     .all((req, res, next) => {
         FoldersService.getById(

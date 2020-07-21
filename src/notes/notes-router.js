@@ -18,6 +18,30 @@ notesRouter
             .catch(next)
     })
 
+    .post(jsonParser, (req, res, next) => {
+        const { title, folder_id, content } = req.body
+        const newNote = { title, folder_id, content }
+        for (const [key, value] of Object.entries(newNote)) {
+            if (value == null) {
+                return res.status(400).json({
+                    error: { message: `Missing '${key}' in request body` }
+                })
+            }
+        }
+        newNote.title = title
+        NotesService.insertNote(
+            req.app.get('db'),
+            newNote
+        )
+            .then(note => {
+                res
+                    .status(201)
+                    .location(path.posix.join(req.originalUrl, `/${note.id}`))
+                    .json(note)
+            })
+            .catch(next)
+    })
+
 notesRouter.route('/:note_id')
     .all((req, res, next) => {
         NotesService.getById(
@@ -57,21 +81,22 @@ notesRouter.route('/:note_id')
 
     .patch(jsonParser, (req, res, next) => {
         const { title, content } = req.body
+        console.log(req.body)
         const noteToUpdate = { title, content }
         const numberOfValues = Object.values(noteToUpdate).filter(Boolean).length
-        if (numberOfValues === 0) {
+        if (!numberOfValues) {
             return res.status(400).json({
                 error: {
                     message: `Request body must contain either 'title' or 'content`
                 }
             })
         }
-        NoteService.updateNote(
+        NotesService.updateNote(
             req.app.get('db'),
             req.params.note_id,
             noteToUpdate
         )
-            .then(numRowsAffected => {
+            .then(() => {
                 res.status(204).end()
             })
             .catch(next)
